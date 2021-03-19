@@ -16,7 +16,7 @@ hex-literal = { version = "0.3.1", optional = true }
 # primitives
 node-primitives = { path = "../../primitives", default-features = false }
 sp-authority-discovery = { version = "3.0.0", default-features = false }
-sp-consensus-babe = { version = "0.9.0", default-features = false }
+sp-consensus-aura = { version = "0.9.0", default-features = false }
 sp-block-builder = { default-features = false, version = "3.0.0"}
 sp-inherents = { version = "3.0.0", default-features = false }
 sp-offchain = { version = "3.0.0", default-features = false }
@@ -39,7 +39,7 @@ frame-system-benchmarking = { version = "3.0.0", default-features = false, optio
 frame-system-rpc-runtime-api = { version = "3.0.0", default-features = false }
 pallet-authority-discovery = { version = "3.0.0", default-features = false }
 pallet-authorship = { version = "3.0.0", default-features = false }
-pallet-babe = { version = "3.0.0", default-features = false }
+pallet-aura = { version = "3.0.0", default-features = false }
 pallet-balances = { version = "3.0.0", default-features = false }
 pallet-collective = { version = "3.0.0", default-features = false }
 pallet-democracy = { version = "3.0.0", default-features = false }
@@ -87,8 +87,8 @@ std = [
 	"sp-authority-discovery/std",
 	"pallet-authority-discovery/std",
 	"pallet-authorship/std",
-	"sp-consensus-babe/std",
-	"pallet-babe/std",
+	"sp-consensus-aura/std",
+	"pallet-aura/std",
 	"pallet-balances/std",
 	"sp-block-builder/std",
 	"codec/std",
@@ -145,7 +145,7 @@ runtime-benchmarks = [
 	"frame-support/runtime-benchmarks",
 	"frame-system/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
-	"pallet-babe/runtime-benchmarks",
+	# "pallet-aura/runtime-benchmarks",
 	"pallet-balances/runtime-benchmarks",
 	"pallet-collective/runtime-benchmarks",
 	"pallet-democracy/runtime-benchmarks",

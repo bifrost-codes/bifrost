@@ -16,28 +16,32 @@
 
 use hex_literal::hex;
 use sc_chain_spec::ChainType;
-use sp_core::{crypto::UncheckedInto, sr25519};
+use sp_core::{crypto::UncheckedInto, Pair, Public, sr25519};
 use telemetry::TelemetryEndpoints;
-use node_primitives::{AccountId, VtokenPool, TokenType, Token};
+use node_primitives::{AccountId, VtokenPool, TokenType, Token, Signature};
 use pallet_im_online::sr25519::{AuthorityId as ImOnlineId};
+use sp_consensus_aura::sr25519::AuthorityId as AuraId;
+use sp_runtime::traits::{Verify, IdentifyAccount};
 use bifrost_runtime::{
 	constants::currency::DOLLARS,
-	AssetsConfig, AuthorityDiscoveryConfig, BabeConfig, BalancesConfig,
+	AssetsConfig, BalancesConfig,
 	VtokenMintConfig, CouncilConfig, DemocracyConfig, PoaManagerConfig,
 	GenesisConfig, GrandpaConfig, IndicesConfig, SessionConfig, SessionKeys,
 	SudoConfig, SystemConfig, TechnicalCommitteeConfig, VoucherConfig, VestingConfig,
-	WASM_BINARY, wasm_binary_unwrap, ImOnlineConfig
+	WASM_BINARY, wasm_binary_unwrap, AuraConfig, 
+	ImOnlineConfig, AuthorityDiscoveryConfig
 };
 use crate::chain_spec::{
 	Extensions, BabeId, GrandpaId, AuthorityDiscoveryId,
-	authority_keys_from_seed, get_account_id_from_seed, initialize_all_vouchers, testnet_accounts
+	get_account_id_from_seed, initialize_all_vouchers, testnet_accounts
 };
 
 const STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
-const DEFAULT_PROTOCOL_ID: &str = "bnc";
+const DEFAULT_PROTOCOL_ID: &str = "bifrost";
 
 /// The `ChainSpec` parametrised for the bifrost runtime.
-pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
+pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig>;
+type AccountPublic = <Signature as Verify>::Signer;
 
 pub fn config() -> Result<ChainSpec, String> {
 	ChainSpec::from_json_bytes(&include_bytes!("../../res/bifrost.json")[..])
@@ -45,117 +49,24 @@ pub fn config() -> Result<ChainSpec, String> {
 
 fn session_keys(
 	grandpa: GrandpaId,
-	babe: BabeId,
+	aura: AuraId,
 	im_online: ImOnlineId,
-	authority_discovery: AuthorityDiscoveryId,
+	authority_discovery: AuthorityDiscoveryId
 ) -> SessionKeys {
-	SessionKeys {
-		babe,
-		grandpa,
-		im_online,
-		authority_discovery,
+    SessionKeys { 
+		grandpa, aura, 
+		im_online, authority_discovery 
 	}
-}
-
-fn staging_testnet_config_genesis() -> GenesisConfig {
-	// stash, controller, session-key
-	// generated with secret:
-	// for i in 1 2 3 4 ; do for j in stash controller; do subkey inspect "$secret"/fir/$j/$i; done; done
-	// and
-	// for i in 1 2 3 4 ; do for j in session; do subkey --ed25519 inspect "$secret"//fir//$j//$i; done; done
-
-	let initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> = vec![(
-		// 5Fbsd6WXDGiLTxunqeK5BATNiocfCqu9bS1yArVjCgeBLkVy
-		hex!["9c7a2ee14e565db0c69f78c7b4cd839fbf52b607d867e9e9c5a79042898a0d12"].into(),
-		// 5EnCiV7wSHeNhjW3FSUwiJNkcc2SBkPLn5Nj93FmbLtBjQUq
-		hex!["781ead1e2fa9ccb74b44c19d29cb2a7a4b5be3972927ae98cd3877523976a276"].into(),
-		// 5Fb9ayurnxnaXj56CjmyQLBiadfRCqUbL2VWNbbe1nZU6wiC
-		hex!["9becad03e6dcac03cee07edebca5475314861492cdfc96a2144a67bbe9699332"].unchecked_into(),
-		// 5EZaeQ8djPcq9pheJUhgerXQZt9YaHnMJpiHMRhwQeinqUW8
-		hex!["6e7e4eb42cbd2e0ab4cae8708ce5509580b8c04d11f6758dbf686d50fe9f9106"].unchecked_into(),
-		// 5EZaeQ8djPcq9pheJUhgerXQZt9YaHnMJpiHMRhwQeinqUW8
-		hex!["6e7e4eb42cbd2e0ab4cae8708ce5509580b8c04d11f6758dbf686d50fe9f9106"].unchecked_into(),
-		// 5EZaeQ8djPcq9pheJUhgerXQZt9YaHnMJpiHMRhwQeinqUW8
-		hex!["6e7e4eb42cbd2e0ab4cae8708ce5509580b8c04d11f6758dbf686d50fe9f9106"].unchecked_into(),
-	),(
-		// 5ERawXCzCWkjVq3xz1W5KGNtVx2VdefvZ62Bw1FEuZW4Vny2
-		hex!["68655684472b743e456907b398d3a44c113f189e56d1bbfd55e889e295dfde78"].into(),
-		// 5Gc4vr42hH1uDZc93Nayk5G7i687bAQdHHc9unLuyeawHipF
-		hex!["c8dc79e36b29395413399edaec3e20fcca7205fb19776ed8ddb25d6f427ec40e"].into(),
-		// 5EockCXN6YkiNCDjpqqnbcqd4ad35nU4RmA1ikM4YeRN4WcE
-		hex!["7932cff431e748892fa48e10c63c17d30f80ca42e4de3921e641249cd7fa3c2f"].unchecked_into(),
-		// 5DhLtiaQd1L1LU9jaNeeu9HJkP6eyg3BwXA7iNMzKm7qqruQ
-		hex!["482dbd7297a39fa145c570552249c2ca9dd47e281f0c500c971b59c9dcdcd82e"].unchecked_into(),
-		// 5DhLtiaQd1L1LU9jaNeeu9HJkP6eyg3BwXA7iNMzKm7qqruQ
-		hex!["482dbd7297a39fa145c570552249c2ca9dd47e281f0c500c971b59c9dcdcd82e"].unchecked_into(),
-		// 5DhLtiaQd1L1LU9jaNeeu9HJkP6eyg3BwXA7iNMzKm7qqruQ
-		hex!["482dbd7297a39fa145c570552249c2ca9dd47e281f0c500c971b59c9dcdcd82e"].unchecked_into(),
-	),(
-		// 5DyVtKWPidondEu8iHZgi6Ffv9yrJJ1NDNLom3X9cTDi98qp
-		hex!["547ff0ab649283a7ae01dbc2eb73932eba2fb09075e9485ff369082a2ff38d65"].into(),
-		// 5FeD54vGVNpFX3PndHPXJ2MDakc462vBCD5mgtWRnWYCpZU9
-		hex!["9e42241d7cd91d001773b0b616d523dd80e13c6c2cab860b1234ef1b9ffc1526"].into(),
-		// 5E1jLYfLdUQKrFrtqoKgFrRvxM3oQPMbf6DfcsrugZZ5Bn8d
-		hex!["5633b70b80a6c8bb16270f82cca6d56b27ed7b76c8fd5af2986a25a4788ce440"].unchecked_into(),
-		// 5DhKqkHRkndJu8vq7pi2Q5S3DfftWJHGxbEUNH43b46qNspH
-		hex!["482a3389a6cf42d8ed83888cfd920fec738ea30f97e44699ada7323f08c3380a"].unchecked_into(),
-		// 5DhKqkHRkndJu8vq7pi2Q5S3DfftWJHGxbEUNH43b46qNspH
-		hex!["482a3389a6cf42d8ed83888cfd920fec738ea30f97e44699ada7323f08c3380a"].unchecked_into(),
-		// 5DhKqkHRkndJu8vq7pi2Q5S3DfftWJHGxbEUNH43b46qNspH
-		hex!["482a3389a6cf42d8ed83888cfd920fec738ea30f97e44699ada7323f08c3380a"].unchecked_into(),
-	),(
-		// 5HYZnKWe5FVZQ33ZRJK1rG3WaLMztxWrrNDb1JRwaHHVWyP9
-		hex!["f26cdb14b5aec7b2789fd5ca80f979cef3761897ae1f37ffb3e154cbcc1c2663"].into(),
-		// 5EPQdAQ39WQNLCRjWsCk5jErsCitHiY5ZmjfWzzbXDoAoYbn
-		hex!["66bc1e5d275da50b72b15de072a2468a5ad414919ca9054d2695767cf650012f"].into(),
-		// 5DMa31Hd5u1dwoRKgC4uvqyrdK45RHv3CpwvpUC1EzuwDit4
-		hex!["3919132b851ef0fd2dae42a7e734fe547af5a6b809006100f48944d7fae8e8ef"].unchecked_into(),
-		// 5C4vDQxA8LTck2xJEy4Yg1hM9qjDt4LvTQaMo4Y8ne43aU6x
-		hex!["00299981a2b92f878baaf5dbeba5c18d4e70f2a1fcd9c61b32ea18daf38f4378"].unchecked_into(),
-		// 5C4vDQxA8LTck2xJEy4Yg1hM9qjDt4LvTQaMo4Y8ne43aU6x
-		hex!["00299981a2b92f878baaf5dbeba5c18d4e70f2a1fcd9c61b32ea18daf38f4378"].unchecked_into(),
-		// 5C4vDQxA8LTck2xJEy4Yg1hM9qjDt4LvTQaMo4Y8ne43aU6x
-		hex!["00299981a2b92f878baaf5dbeba5c18d4e70f2a1fcd9c61b32ea18daf38f4378"].unchecked_into(),
-	)];
-
-	// generated with secret: subkey inspect "$secret"/fir
-	let root_key: AccountId = hex![
-		// 5Ff3iXP75ruzroPWRP2FYBHWnmGGBSb63857BgnzCoXNxfPo
-		"9ee5e5bdc0ec239eb164f865ecc345ce4c88e76ee002e0f7e318097347471809"
-	].into();
-
-	let endowed_accounts: Vec<AccountId> = vec![root_key.clone()];
-
-	testnet_genesis(
-		initial_authorities,
-		root_key,
-		Some(endowed_accounts),
-	)
-}
-
-pub fn staging_testnet_config() -> ChainSpec {
-	let boot_nodes = vec![];
-	ChainSpec::from_genesis(
-		"Bifrost Staging Testnet",
-		"bifrost_staging_testnet",
-		ChainType::Live,
-		staging_testnet_config_genesis,
-		boot_nodes,
-		Some(TelemetryEndpoints::new(vec![(STAGING_TELEMETRY_URL.to_string(), 0)])
-			.expect("Staging telemetry url is valid; qed")),
-		None,
-		None,
-		Default::default(),
-	)
 }
 
 /// Helper function to create bifrost GenesisConfig for testing
 pub fn testnet_genesis(
+	wasm_binary: &[u8],
 	initial_authorities: Vec<(
 		AccountId,
 		AccountId,
 		GrandpaId,
-		BabeId,
+		AuraId,
 		ImOnlineId,
 		AuthorityDiscoveryId,
 	)>,
@@ -196,9 +107,6 @@ pub fn testnet_genesis(
 				))
 			}).collect::<Vec<_>>(),
 		},
-		pallet_im_online: ImOnlineConfig {
-			keys: vec![],
-		},
 		pallet_democracy: DemocracyConfig::default(),
 		pallet_collective_Instance1: CouncilConfig::default(),
 		pallet_collective_Instance2: TechnicalCommitteeConfig {
@@ -211,10 +119,14 @@ pub fn testnet_genesis(
 		pallet_sudo: SudoConfig {
 			key: root_key.clone(),
 		},
-		pallet_babe: BabeConfig {
+		pallet_aura: AuraConfig {
+			// authorities: initial_authorities.iter().map(|x| (x.0.clone())).collect(),
 			authorities: vec![],
 		},
 		pallet_authority_discovery: AuthorityDiscoveryConfig {
+			keys: vec![],
+		},
+		pallet_im_online: ImOnlineConfig {
 			keys: vec![],
 		},
 		pallet_grandpa: GrandpaConfig {
@@ -263,78 +175,116 @@ pub fn testnet_genesis(
 	}
 }
 
-fn development_config_genesis(_wasm_binary: &[u8]) -> GenesisConfig {
-	testnet_genesis(
-		vec![authority_keys_from_seed("Alice")],
-		get_account_id_from_seed::<sr25519::Public>("Alice"),
-		None,
-	)
+pub fn get_from_seed<TPublic: Public>(seed: &str) -> <TPublic::Pair as Pair>::Public {
+	TPublic::Pair::from_string(&format!("//{}", seed), None)
+		.expect("static values are valid; qed")
+		.public()
+}
+
+pub fn authority_keys_from_seed(s: &str) -> 
+	(AccountId, AccountId, GrandpaId, AuraId,
+		ImOnlineId, AuthorityDiscoveryId
+	) 
+{
+    (
+        get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", s)),
+        get_account_id_from_seed::<sr25519::Public>(s),
+        get_from_seed::<GrandpaId>(s),
+        get_from_seed::<AuraId>(s),
+        get_from_seed::<ImOnlineId>(s),
+        get_from_seed::<AuthorityDiscoveryId>(s),
+    )
 }
 
 /// Bifrost development config (single validator Alice)
 pub fn development_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or("Bifrost development wasm not available")?;
-
-	let properties = {
-		let mut props = serde_json::Map::new();
-
-		props.insert(
-			"ss58Format".to_owned(),
-			serde_json::value::to_value(6u8).expect("The ss58Format cannot be convert to json value.")
-		);
-		props.insert(
-			"tokenDecimals".to_owned(),
-			serde_json::value::to_value(12u8).expect("The tokenDecimals cannot be convert to json value.")
-		);
-		props.insert(
-			"tokenSymbol".to_owned(),
-			serde_json::value::to_value("BNC".to_owned()).expect("The tokenSymbol cannot be convert to json value.")
-		);
-		Some(props)
-	};
-	let protocol_id = Some("bifrost");
+	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
 	Ok(ChainSpec::from_genesis(
-		"Development",
-		"dev",
+		// Name
+		"Bifrost POA Development",
+		// ID
+		"poa_dev",
 		ChainType::Development,
-		move || development_config_genesis(wasm_binary),
+		move || testnet_genesis(
+			wasm_binary,
+			// Initial PoA authorities
+			vec![
+				authority_keys_from_seed("Alice"),
+			],
+			// Sudo account
+			get_account_id_from_seed::<sr25519::Public>("Alice"),
+			// Pre-funded accounts
+			Some(vec![
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				get_account_id_from_seed::<sr25519::Public>("Bob"),
+				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+			]),
+		),
+		// Bootnodes
 		vec![],
+		// Telemetry
 		None,
-		protocol_id,
-		properties,
-		Default::default(),
+		// Protocol ID
+		None,
+		// Properties
+		None,
+		// Extensions
+		None,
 	))
 }
 
-fn local_testnet_genesis(_wasm_binary: &[u8]) -> GenesisConfig {
-	testnet_genesis(
-		vec![
-			authority_keys_from_seed("Alice"),
-		],
-		get_account_id_from_seed::<sr25519::Public>("Alice"),
-		None,
-	)
-}
-
-/// Bifrost local testnet config (multivalidator Alice + Bob)
 pub fn local_testnet_config() -> Result<ChainSpec, String> {
-	let wasm_binary = WASM_BINARY.ok_or("Bifrost development wasm not available")?;
+	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
 	Ok(ChainSpec::from_genesis(
-		"Bifrost Local Testnet",
-		"bifrost_local_testnet",
+		// Name
+		"Bifrost POA Local Testnet",
+		// ID
+		"poa_local",
 		ChainType::Local,
-		move || local_testnet_genesis(wasm_binary),
+		move || testnet_genesis(
+			wasm_binary,
+			// Initial PoA authorities
+			vec![
+				authority_keys_from_seed("Alice"),
+				authority_keys_from_seed("Bob"),
+			],
+			// Sudo account
+			get_account_id_from_seed::<sr25519::Public>("Alice"),
+			// Pre-funded accounts
+			Some(vec![
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				get_account_id_from_seed::<sr25519::Public>("Bob"),
+				get_account_id_from_seed::<sr25519::Public>("Charlie"),
+				get_account_id_from_seed::<sr25519::Public>("Dave"),
+				get_account_id_from_seed::<sr25519::Public>("Eve"),
+				get_account_id_from_seed::<sr25519::Public>("Ferdie"),
+				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Charlie//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+			]),
+		),
+		// Bootnodes
 		vec![],
+		// Telemetry
 		None,
-		Some(DEFAULT_PROTOCOL_ID),
+		// Protocol ID
 		None,
+		// Properties
+		None,
+		// Extensions
 		Default::default(),
 	))
 }
 
-pub fn chainspec_config() -> ChainSpec {
+pub fn poa_chainspec_config() -> Result<ChainSpec, String> {
+	let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
+
 	let properties = {
 		let mut props = serde_json::Map::new();
 
@@ -354,22 +304,38 @@ pub fn chainspec_config() -> ChainSpec {
 	};
 	let protocol_id = Some("bifrost");
 
-	ChainSpec::from_genesis(
-		"Bifrost",
-		"bifrost_mainnet",
-		ChainType::Custom("Bifrost Mainnet".into()),
-		staging_testnet_config_genesis,
+	Ok(ChainSpec::from_genesis(
+		"Bifrost POA Mainnet",
+		"bifrost_poa",
+		ChainType::Custom("Bifrost POA Mainnet".into()),
+		move || testnet_genesis(
+			wasm_binary,
+			// Initial PoA authorities
+			vec![
+				authority_keys_from_seed("Alice"),
+			],
+			// Sudo account
+			get_account_id_from_seed::<sr25519::Public>("Alice"),
+			// Pre-funded accounts
+			Some(vec![
+				get_account_id_from_seed::<sr25519::Public>("Alice"),
+				get_account_id_from_seed::<sr25519::Public>("Bob"),
+				get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
+				get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+			]),
+			// true,
+		),
 		vec![
-			"/dns/n1.testnet.liebi.com/tcp/30333/p2p/12D3KooWHjmfpAdrjL7EvZ7Zkk4pFmkqKDLL5JDENc7oJdeboxJJ".parse().expect("failed to parse multiaddress."),
-			"/dns/n2.testnet.liebi.com/tcp/30333/p2p/12D3KooWPbTeqZHdyTdqY14Zu2t6FVKmUkzTZc3y5GjyJ6ybbmSB".parse().expect("failed to parse multiaddress."),
-			"/dns/n3.testnet.liebi.com/tcp/30333/p2p/12D3KooWLt3w5tadCR5Fc7ZvjciLy7iKJ2ZHq6qp4UVmUUHyCJuX".parse().expect("failed to parse multiaddress."),
-			"/dns/n4.testnet.liebi.com/tcp/30333/p2p/12D3KooWMduQkmRVzpwxJuN6MQT4ex1iP9YquzL4h5K9Ru8qMXtQ".parse().expect("failed to parse multiaddress."),
-			"/dns/n5.testnet.liebi.com/tcp/30333/p2p/12D3KooWLAHZyqMa9TQ1fR7aDRRKfWt857yFMT3k2ckK9mhYT9qR".parse().expect("failed to parse multiaddress.")
+			// "/dns/n1.testnet.liebi.com/tcp/30333/p2p/12D3KooWHjmfpAdrjL7EvZ7Zkk4pFmkqKDLL5JDENc7oJdeboxJJ".parse().expect("failed to parse multiaddress."),
+			// "/dns/n2.testnet.liebi.com/tcp/30333/p2p/12D3KooWPbTeqZHdyTdqY14Zu2t6FVKmUkzTZc3y5GjyJ6ybbmSB".parse().expect("failed to parse multiaddress."),
+			// "/dns/n3.testnet.liebi.com/tcp/30333/p2p/12D3KooWLt3w5tadCR5Fc7ZvjciLy7iKJ2ZHq6qp4UVmUUHyCJuX".parse().expect("failed to parse multiaddress."),
+			// "/dns/n4.testnet.liebi.com/tcp/30333/p2p/12D3KooWMduQkmRVzpwxJuN6MQT4ex1iP9YquzL4h5K9Ru8qMXtQ".parse().expect("failed to parse multiaddress."),
+			// "/dns/n5.testnet.liebi.com/tcp/30333/p2p/12D3KooWLAHZyqMa9TQ1fR7aDRRKfWt857yFMT3k2ckK9mhYT9qR".parse().expect("failed to parse multiaddress.")
 		],
 		Some(TelemetryEndpoints::new(vec![(STAGING_TELEMETRY_URL.to_string(), 0)])
 			.expect("Asgard Testnet telemetry url is valid; qed")),
 		protocol_id,
 		properties,
 		Default::default(),
-	)
+	))
 }

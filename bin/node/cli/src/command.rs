@@ -50,22 +50,16 @@ fn load_spec(
 			.unwrap_or("bifrost")
 	} else { id };
 	Ok(match id {
-		"asgard" => Box::new(service::chain_spec::asgard::chainspec_config(para_id)),
-		"asgard-dev" => Box::new(service::chain_spec::asgard::development_config(para_id)?),
-		"asgard-local" => Box::new(service::chain_spec::asgard::local_testnet_config(para_id)?),
-		"asgard-staging" => Box::new(service::chain_spec::asgard::staging_testnet_config(para_id)),
-		"bifrost" | "" => Box::new(service::chain_spec::bifrost::chainspec_config()),
+		"bifrost" | "" => Box::new(service::chain_spec::bifrost::poa_chainspec_config()?),
 		"bifrost-dev" | "dev" => Box::new(service::chain_spec::bifrost::development_config()?),
 		"bifrost-local" | "local" => Box::new(service::chain_spec::bifrost::local_testnet_config()?),
-		"bifrost-staging" | "staging" => Box::new(service::chain_spec::bifrost::staging_testnet_config()),
-		"rococo" => Box::new(service::chain_spec::rococo::chainspec_config(para_id)),
-		"rococo-dev" => Box::new(service::chain_spec::rococo::development_config(para_id)?),
-		"rococo-local" => Box::new(service::chain_spec::rococo::local_testnet_config(para_id)?),
-		"rococo-staging" => Box::new(service::chain_spec::rococo::staging_testnet_config(para_id)),
 		path => {
 			let path = std::path::PathBuf::from(path);
-			// Box::new(service::chain_spec::bifrost::ChainSpec::from_json_file(path)?)
-			Box::new(service::chain_spec::rococo::ChainSpec::from_json_file(path)?)
+			if path.to_str().map(|s| s.contains("bifrost")) == Some(true) {
+				Box::new(service::chain_spec::bifrost::ChainSpec::from_json_file(path)?)
+			} else {
+				Box::new(service::chain_spec::rococo::ChainSpec::from_json_file(path)?)
+			}
 		}
 	})
 }
@@ -183,7 +177,7 @@ pub fn run() -> Result<()> {
 			let runner = cli.create_runner(&*cli.run)?;
 			runner.run_node_until_exit(|config| async move {
 				match config.role {
-					Role::Light => service::build_light(config).map_err(Into::into),
+					Role::Light => service::new_light(config).map_err(Into::into),
 					_ => {
 						if config.chain_spec.is_asgard() || config.chain_spec.is_rococo() {
 							let key = sp_core::Pair::generate().0;
@@ -225,7 +219,7 @@ pub fn run() -> Result<()> {
 								.await
 								.map_err(Into::into)
 						} else {
-							service::build_full(config)
+							service::new_full(config)
 								.map_err(Into::into)
 						}
 					},

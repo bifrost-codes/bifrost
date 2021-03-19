@@ -9,6 +9,7 @@ edition = "2018"
 sc-authority-discovery = { version = "0.9.0" }
 sc-basic-authorship = { version = "0.9.0" }
 sc-consensus-babe = { version = "0.9.0" }
+sc-consensus-aura = { version = "0.9.0" }
 sc-finality-grandpa = { version = "0.9.0" }
 sc-block-builder = { version = "0.9.0" }
 sc-chain-spec = { version = "3.0.0" }
@@ -19,6 +20,7 @@ sc-consensus = { version = "0.9.0" }
 sc-consensus-slots = { version = "0.9.0" }
 sc-executor = { version = "0.9.0" }
 sc-network = { version = "0.9.0" }
+sc-keystore = { version = "3.0.0" }
 sc-transaction-pool = { version = "3.0.0" }
 sc-tracing = { version = "3.0.0" }
 sc-service = { version = "0.9.0", default-features = false }
@@ -27,6 +29,7 @@ telemetry = { package = "sc-telemetry", version = "3.0.0" }
 # Substrate Primitives
 sp-authority-discovery = { version = "3.0.0" }
 babe-primitives = { package = "sp-consensus-babe", version = "0.9.0" }
+sp-consensus-aura = { version = "0.9.0" }
 sp-consensus = { version = "0.9.0" }
 grandpa_primitives = { package = "sp-finality-grandpa", version = "3.0.0" }
 sp-inherents = { version = "3.0.0" }
@@ -46,6 +49,7 @@ sp-transaction-pool = { version = "3.0.0" }
 sp-trie = { version = "3.0.0" }
 
 # Substrate Pallets
+pallet-aura = { version = "3.0.0" }
 pallet-babe = { version = "3.0.0" }
 pallet-im-online = { version = "3.0.0" }
 pallet-transaction-payment-rpc-runtime-api = { version = "3.0.0" }

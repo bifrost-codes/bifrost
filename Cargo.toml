@@ -99,6 +99,7 @@ frame-system = { git = "https://github.com/paritytech/substrate.git", branch = "
 frame-system-rpc-runtime-api = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 pallet-authorship = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 pallet-authority-discovery = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
+pallet-aura = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 pallet-babe = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 pallet-balances = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 pallet-bounties = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
@@ -138,6 +139,7 @@ sc-cli = { git = "https://github.com/paritytech/substrate.git", branch = "rococo
 sc-client-api = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 sc-client-db = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 sc-consensus = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
+sc-consensus-aura = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 sc-consensus-babe = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 sc-consensus-babe-rpc = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 sc-consensus-epochs = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
@@ -165,6 +167,7 @@ sp-authority-discovery = { git = "https://github.com/paritytech/substrate.git", 
 sp-block-builder = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 sp-blockchain = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 sp-consensus = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
+sp-consensus-aura = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 sp-consensus-babe = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 sp-core = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }
 sp-externalities = { git = "https://github.com/paritytech/substrate.git", branch = "rococo-v1" }

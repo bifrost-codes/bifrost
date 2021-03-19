@@ -18,21 +18,26 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 // Re-export pallet items so that they can be accessed from the crate namespace.
+use frame_support::pallet_prelude::*;
+use frame_support::traits::Get;
+use frame_support::traits::ValidatorRegistration;
+use frame_support::sp_runtime::SaturatedConversion;
+use frame_system::pallet_prelude::*;
+use pallet_session::SessionManager;
+use sp_std::prelude::*;
+
 pub use pallet::*;
 
 #[frame_support::pallet]
 pub mod pallet {
 	// Import various types used to declare pallet in scope.
-	use frame_support::pallet_prelude::*;
-	use frame_support::traits::ValidatorRegistration;
-	use frame_system::pallet_prelude::*;
-	use pallet_session::SessionManager;
-	use sp_std::prelude::*;
+	use super::*;
 
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
 		type ValidatorRegistrationChecker: ValidatorRegistration<Self::AccountId>;
+		type EpochDuration: Get<u64>;
 	}
 
 	#[pallet::pallet]
@@ -55,6 +60,10 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn validators)]
 	pub(super) type Validators<T: Config> = StorageMap<_, Blake2_128Concat, T::AccountId, bool, ValueQuery>;
+
+	#[pallet::storage]
+	#[pallet::getter(fn is_changed)]
+	pub type IsChanged<T: Config> = StorageValue<_, bool, ValueQuery>;
 
 	#[pallet::genesis_config]
 	pub struct GenesisConfig<T: Config> {
@@ -105,6 +114,8 @@ pub mod pallet {
 			);
 			<Validators<T>>::insert(&validator_id, true);
 
+			IsChanged::<T>::put(true);
+
 			Self::deposit_event(Event::ValidatorAdded(validator_id));
 
 			Ok(().into())
@@ -123,6 +134,8 @@ pub mod pallet {
 			);
 			<Validators<T>>::remove(&validator_id);
 
+			IsChanged::<T>::put(true);
+
 			Self::deposit_event(Event::ValidatorRemoved(validator_id));
 
 			Ok(().into())
@@ -131,7 +144,15 @@ pub mod pallet {
 
 	impl<T: Config> SessionManager<T::AccountId> for Pallet<T> {
 		fn new_session(_: u32) -> Option<Vec<T::AccountId>> {
-			Some(<Validators<T>>::iter().map(|(val_id, _)| val_id).collect())
+			let result = if IsChanged::<T>::get() {
+				Some(<Validators<T>>::iter().map(|(val_id, _)| val_id).collect())
+			} else {
+				None
+			};
+
+			IsChanged::<T>::put(false);
+
+			result
 		}
 
 		fn end_session(_: u32) {}
