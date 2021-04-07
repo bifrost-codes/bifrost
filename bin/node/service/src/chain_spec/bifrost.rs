@@ -40,7 +40,7 @@ const DEFAULT_PROTOCOL_ID: &str = "bnc";
 pub type ChainSpec = sc_service::GenericChainSpec<GenesisConfig, Extensions>;
 
 pub fn config() -> Result<ChainSpec, String> {
-	ChainSpec::from_json_bytes(&include_bytes!("../../res/bifrost.json")[..])
+	ChainSpec::from_json_bytes(&include_bytes!("../../res/bifrost-poa.json")[..])
 }
 
 fn session_keys(
@@ -178,11 +178,7 @@ pub fn testnet_genesis(
 			code: wasm_binary_unwrap().to_vec(),
 			changes_trie_config: Default::default(),
 		},
-		pallet_balances: BalancesConfig {
-			balances: endowed_accounts.iter().cloned()
-				.map(|x| (x, ENDOWMENT))
-				.collect()
-		},
+		pallet_balances: pallet_balances_config(&endowed_accounts, ENDOWMENT),
 		pallet_indices: IndicesConfig {
 			indices: vec![],
 		},
@@ -329,21 +325,172 @@ pub fn chainspec_config() -> ChainSpec {
 	let protocol_id = Some("bifrost");
 
 	ChainSpec::from_genesis(
-		"Bifrost",
-		"bifrost_mainnet",
-		ChainType::Custom("Bifrost Mainnet".into()),
-		staging_testnet_config_genesis,
+		"Bifrost POA Network",
+		"bifrost_poa",
+		ChainType::Custom("Live".into()),
+		bifrost_poa_testnet_config_genesis,
 		vec![
-			"/dns/n1.testnet.liebi.com/tcp/30333/p2p/12D3KooWHjmfpAdrjL7EvZ7Zkk4pFmkqKDLL5JDENc7oJdeboxJJ".parse().expect("failed to parse multiaddress."),
-			"/dns/n2.testnet.liebi.com/tcp/30333/p2p/12D3KooWPbTeqZHdyTdqY14Zu2t6FVKmUkzTZc3y5GjyJ6ybbmSB".parse().expect("failed to parse multiaddress."),
-			"/dns/n3.testnet.liebi.com/tcp/30333/p2p/12D3KooWLt3w5tadCR5Fc7ZvjciLy7iKJ2ZHq6qp4UVmUUHyCJuX".parse().expect("failed to parse multiaddress."),
-			"/dns/n4.testnet.liebi.com/tcp/30333/p2p/12D3KooWMduQkmRVzpwxJuN6MQT4ex1iP9YquzL4h5K9Ru8qMXtQ".parse().expect("failed to parse multiaddress."),
-			"/dns/n5.testnet.liebi.com/tcp/30333/p2p/12D3KooWLAHZyqMa9TQ1fR7aDRRKfWt857yFMT3k2ckK9mhYT9qR".parse().expect("failed to parse multiaddress.")
+			"/ip4/124.156.222.64/tcp/30333/p2p/12D3KooWKstUr5Jd4qBcY1DkTJPwbbeoSbaXHePpB1eGgdxWQ1iS".parse().expect("failed to parse multiaddress."),
+			"/ip4/124.156.222.64/tcp/30334/p2p/12D3KooWQ3FWGrqQPkWJdqEWCpLHALiisqKhmnJ1a42DmNuGX3Px".parse().expect("failed to parse multiaddress."),
 		],
 		Some(TelemetryEndpoints::new(vec![(STAGING_TELEMETRY_URL.to_string(), 0)])
-			.expect("Asgard Testnet telemetry url is valid; qed")),
+			.expect("Bifrost POA Network telemetry url is valid; qed")),
 		protocol_id,
 		properties,
 		Default::default(),
 	)
+}
+
+pub fn bifrost_poa_testnet_genesis(
+	initial_authorities: Vec<(
+		AccountId,
+		AccountId,
+		GrandpaId,
+		BabeId,
+		ImOnlineId,
+		AuthorityDiscoveryId,
+	)>,
+	root_key: AccountId,
+	endowed_accounts: Option<Vec<AccountId>>,
+) -> GenesisConfig {
+	let mut endowed_accounts: Vec<AccountId> = endowed_accounts.unwrap_or_else(testnet_accounts);
+
+	initial_authorities.iter().for_each(|x|
+		if !endowed_accounts.contains(&x.0) {
+			endowed_accounts.push(x.0.clone())
+		}
+	);
+
+	const ENDOWMENT: u128 = 1_000 * DOLLARS;
+
+	// TechnicalCommittee and Council members
+	let technicals_member = vec![
+		hex!["a8f3801d8c78e090c201eebd56a952a7e90d535ced5684fdd3fd676a9acf4b44"].into(), // lurpis
+		hex!["72a7f127d3e7fc34bb22a4262ac6bcc7e35616e4eff43d22da121d57d456fb01"].into(), // edwin
+		hex!["0c825c6b5a5223828fa627f34c2fc6290b0e833bcc3ca5de9ca534933add5455"].into(), // jamie
+	];
+
+	GenesisConfig {
+		frame_system: SystemConfig {
+			code: wasm_binary_unwrap().to_vec(),
+			changes_trie_config: Default::default(),
+		},
+		pallet_balances: pallet_balances_config(&technicals_member, ENDOWMENT),
+		pallet_indices: IndicesConfig {
+			indices: vec![],
+		},
+		pallet_session: SessionConfig {
+			keys: initial_authorities.iter().map(|x| {
+				(x.0.clone(), x.0.clone(), session_keys(
+					x.2.clone(),
+					x.3.clone(),
+					x.4.clone(),
+					x.5.clone(),
+				))
+			}).collect::<Vec<_>>(),
+		},
+		pallet_im_online: ImOnlineConfig {
+			keys: vec![],
+		},
+		pallet_democracy: DemocracyConfig::default(),
+		pallet_collective_Instance1: CouncilConfig {
+			members: technicals_member.clone(),
+			phantom: Default::default(),
+		},
+		pallet_collective_Instance2: TechnicalCommitteeConfig {
+			members: technicals_member,
+			phantom: Default::default(),
+		},
+		pallet_sudo: SudoConfig {
+			key: root_key.clone(),
+		},
+		pallet_babe: BabeConfig {
+			authorities: vec![],
+		},
+		pallet_authority_discovery: AuthorityDiscoveryConfig {
+			keys: vec![],
+		},
+		pallet_grandpa: GrandpaConfig {
+			authorities: vec![],
+		},
+		pallet_membership_Instance1: Default::default(),
+		pallet_treasury: Default::default(),
+		// pallet_vesting: VestingConfig {
+		// 	vesting: endowed_accounts
+		// 		.iter()
+		// 		.map(|account_id| (account_id.clone(), 0, 10000, ENDOWMENT / 2))
+		// 		.collect::<Vec<_>>()
+		// },
+		pallet_vesting: Default::default(),
+		brml_poa_manager: PoaManagerConfig {
+			initial_validators: initial_authorities
+				.iter()
+				.map(|x| x.0.clone())
+				.collect::<Vec<_>>(),
+		},
+	}
+}
+
+fn bifrost_poa_testnet_config_genesis() -> GenesisConfig {
+	let initial_authorities: Vec<(AccountId, AccountId, GrandpaId, BabeId, ImOnlineId, AuthorityDiscoveryId)> = vec![(
+		// 14pXP1DJVJnZDt6CcPkuwfT6NHh9nQ22J8LnsUCvkk2LRH65
+		hex!["a8f3801d8c78e090c201eebd56a952a7e90d535ced5684fdd3fd676a9acf4b44"].into(),
+		// 14pXP1DJVJnZDt6CcPkuwfT6NHh9nQ22J8LnsUCvkk2LRH65
+		hex!["a8f3801d8c78e090c201eebd56a952a7e90d535ced5684fdd3fd676a9acf4b44"].into(),
+		// gHq6Rjb3NpwtsQX5HyampguzvaQSsjwdYJmK4Up1oVhVdXH
+		hex!["ca02edb17553a26a7a9bf068e32db3d746663b1ecda9fa812e3a5d68001b91fd"].unchecked_into(),
+		// cuC2dFwwrLcPQckxadSqqKo8qpPuG5uyHaFf9NXkaLQbdE7
+		hex!["340a0e3583eb8056e429747964d43533f280a55f6c33004216d18e0dc5ac6d01"].unchecked_into(),
+		// cuC2dFwwrLcPQckxadSqqKo8qpPuG5uyHaFf9NXkaLQbdE7
+		hex!["340a0e3583eb8056e429747964d43533f280a55f6c33004216d18e0dc5ac6d01"].unchecked_into(),
+		// cuC2dFwwrLcPQckxadSqqKo8qpPuG5uyHaFf9NXkaLQbdE7
+		hex!["340a0e3583eb8056e429747964d43533f280a55f6c33004216d18e0dc5ac6d01"].unchecked_into(),
+	),(
+		// eKHu97Aiwx14PDZ37hvJUScGaLjPUsrALqQVTjg2NET2XsM
+		hex!["72a7f127d3e7fc34bb22a4262ac6bcc7e35616e4eff43d22da121d57d456fb01"].into(),
+		// eKHu97Aiwx14PDZ37hvJUScGaLjPUsrALqQVTjg2NET2XsM
+		hex!["72a7f127d3e7fc34bb22a4262ac6bcc7e35616e4eff43d22da121d57d456fb01"].into(),
+		// fnD1YhgjxScs6HZBa6qMai12CwJ7DQogtzBuypqmYCwhKSG
+		hex!["b36b577bd97eb7ef54b85a8ddea35ed159ff5121d1c0bbd4394f0b0464e982bf"].unchecked_into(),
+		// hJTSFK9rSs4d8wr1N8VhYAMtHkpcA4hYi66Q8Wdg9vMRvub
+		hex!["f6b97fc5a3332bfcd532a86b3a4fc31dd91d25aa918915ef97f58a1576d40d56"].unchecked_into(),
+		// hJTSFK9rSs4d8wr1N8VhYAMtHkpcA4hYi66Q8Wdg9vMRvub
+		hex!["f6b97fc5a3332bfcd532a86b3a4fc31dd91d25aa918915ef97f58a1576d40d56"].unchecked_into(),
+		// hJTSFK9rSs4d8wr1N8VhYAMtHkpcA4hYi66Q8Wdg9vMRvub
+		hex!["f6b97fc5a3332bfcd532a86b3a4fc31dd91d25aa918915ef97f58a1576d40d56"].unchecked_into(),
+	)];
+
+	// generated with secret: subkey inspect "$secret"/fir
+	let root_key: AccountId = hex![
+		// fGfKaGohG9exHPgUGw2stJphwrGBiePqGLsYTozx6WBz45f
+		"9ce28cb8857475c0518b291174746e2db2829b3b61f2cd06d91e485e6f1a023f"
+	].into();
+
+	let endowed_accounts: Vec<AccountId> = vec![root_key.clone()];
+
+	bifrost_poa_testnet_genesis(
+		initial_authorities,
+		root_key,
+		Some(endowed_accounts),
+	)
+}
+
+fn pallet_balances_config(endowed_accounts: &Vec<AccountId>, amount: u128) -> BalancesConfig {
+	if let Some(voucher_accounts) = super::initialize_all_vouchers() {
+		BalancesConfig {
+			balances: voucher_accounts.iter().cloned().filter_map(|voucher| {
+				if let Some(who) = endowed_accounts.iter().cloned().find(|x| x == &voucher.0) {
+					Some((who, amount))
+				} else {
+					Some(voucher)
+				}
+			}).collect()
+		}
+	} else {
+		BalancesConfig {
+			balances: endowed_accounts.iter().cloned()
+				.map(|x| (x, amount))
+				.collect()
+		}
+	}
 }
