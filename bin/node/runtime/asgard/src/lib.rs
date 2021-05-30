@@ -61,7 +61,7 @@ use sp_std::marker::PhantomData;
 /// Constant values used within the runtime.
 pub mod constants;
 use constants::{currency::*, time::*};
-use node_primitives::{Moment, Amount, CurrencyId, TokenSymbol, CurrencyIdExt};
+use node_primitives::{Moment, Amount, CurrencyId, TokenSymbol};
 
 // XCM imports
 use polkadot_parachain::primitives::Sibling;
@@ -661,20 +661,26 @@ where
 	Local: MultiCurrency<AccountId, CurrencyId=CurrencyId>,
 {
 	fn local_balance_of(asset_id: AssetId, who: &AccountId) -> AssetBalance {
-		let currency_id: CurrencyId = asset_id.into();
-		Local::free_balance(currency_id, &who).saturated_into()
+		match asset_id.try_into() {
+			Ok(currency_id) => 
+				Local::free_balance(currency_id, &who).saturated_into(),
+			Err(_) => 0
+		}
 	}
 
 	fn local_total_supply(asset_id: AssetId) -> AssetBalance {
-		let currency_id: CurrencyId = asset_id.into();
-		Local::total_issuance(currency_id).saturated_into()
+		match asset_id.try_into() {
+			Ok(currency_id) => Local::total_issuance(currency_id).saturated_into(),
+			Err(_) => Zero::zero()
+		}
 	}
 
 	fn local_is_exists(asset_id: AssetId) -> bool {
-	
-		match asset_id.try_into() {
-			Ok(_) => true,
-			Err(_) => false
+		let rs: Result<CurrencyId, ()> = asset_id.try_into();
+		if rs.is_ok() {
+			true
+		} else {
+			false
 		}
 	}
 
@@ -684,7 +690,7 @@ where
 		target: &AccountId,
 		amount: AssetBalance,
 	) -> DispatchResult {
-		let currency_id: CurrencyId = asset_id.into();
+		let currency_id: CurrencyId = asset_id.try_into().map_err(|_| DispatchError::Other("conversion from AssetId to CurrencyId failed."))?;
 		Local::transfer(
 			currency_id,
 			&origin,
@@ -700,7 +706,7 @@ where
 		origin: &AccountId,
 		amount: AssetBalance,
 	) -> Result<AssetBalance, DispatchError> {
-		let currency_id: CurrencyId = asset_id.into();
+		let currency_id: CurrencyId = asset_id.try_into().map_err(|_| DispatchError::Other("conversion from AssetId to CurrencyId failed."))?;
 		Local::deposit(currency_id, &origin, amount.unique_saturated_into())?;
 		return Ok(amount)
 	}
@@ -710,7 +716,7 @@ where
 		origin: &AccountId,
 		amount: AssetBalance,
 	) -> Result<AssetBalance, DispatchError> {
-		let currency_id: CurrencyId = asset_id.into();
+		let currency_id: CurrencyId = asset_id.try_into().map_err(|_| DispatchError::Other("conversion from AssetId to CurrencyId failed."))?;
 		Local::withdraw(currency_id, &origin, amount.unique_saturated_into())?;
 
 		Ok(amount)

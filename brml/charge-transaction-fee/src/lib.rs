@@ -43,7 +43,7 @@ use node_primitives::{CurrencyId, TokenSymbol};
 use orml_traits::MultiCurrency;
 use pallet_transaction_payment::OnChargeTransaction;
 use zenlink_protocol::{AssetId, AssetBalance};
-use std::convert::TryFrom;
+use core::convert::TryFrom;
 
 mod default_weight;
 mod mock;
