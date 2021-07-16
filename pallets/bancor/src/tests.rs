@@ -93,8 +93,8 @@ fn exchange_for_token_should_work() {
 		);
 
 		// check ALICE's account balances. ALICE should have 1000-50 VSDOT, and 1000+49 DOT.
-		assert_eq!(Assets::free_balance(DOT, &ALICE), 1049);
-		assert_eq!(Assets::free_balance(VSDOT, &ALICE), 950);
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), 1049);
+		assert_eq!(Tokens::free_balance(VSDOT, &ALICE), 950);
 	});
 }
 
@@ -181,8 +181,8 @@ fn exchange_for_vstoken_should_work() {
 		);
 
 		// check ALICE's account balances. ALICE should have 1000-49 DOT, and 1000+49 VSDOT.
-		assert_eq!(Assets::free_balance(DOT, &ALICE), 951);
-		assert_eq!(Assets::free_balance(VSDOT, &ALICE), 1049);
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), 951);
+		assert_eq!(Tokens::free_balance(VSDOT, &ALICE), 1049);
 	});
 }
 

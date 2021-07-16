@@ -162,6 +162,12 @@ parameter_types! {
 	pub const SS58Prefix: u8 = 6;
 }
 
+parameter_types! {
+	pub const NativeCurrencyId: CurrencyId = CurrencyId::Native(TokenSymbol::ASG);
+	pub const RelayCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
+	pub const StableCurrencyId: CurrencyId = CurrencyId::Stable(TokenSymbol::AUSD);
+}
+
 impl frame_system::Config for Runtime {
 	type AccountData = pallet_balances::AccountData<Balance>;
 	/// The identifier used to distinguish between accounts.
@@ -896,10 +902,6 @@ impl orml_tokens::Config for Runtime {
 	type WeightInfo = ();
 }
 
-parameter_types! {
-	pub const NativeCurrencyId: CurrencyId = CurrencyId::Native(TokenSymbol::ASG);
-}
-
 impl bifrost_flexible_fee::Config for Runtime {
 	type Balance = Balance;
 	type Currency = Balances;
@@ -915,7 +917,6 @@ parameter_types! {
 	pub const HalvingCycle: u32 = 60;
 	pub const RewardWindow: u32 = 10;
 	pub const MaximumExtendedPeriod: u32 = 20;
-	pub const StableCurrencyId: CurrencyId = CurrencyId::Stable(TokenSymbol::AUSD);
 }
 
 impl bifrost_minter_reward::Config for Runtime {
@@ -923,7 +924,7 @@ impl bifrost_minter_reward::Config for Runtime {
 	type Event = Event;
 	type HalvingCycle = HalvingCycle;
 	type MaximumExtendedPeriod = MaximumExtendedPeriod;
-	type MultiCurrency = Tokens;
+	type MultiCurrency = Currencies;
 	type RewardWindow = RewardWindow;
 	type ShareWeight = Balance;
 	type StableCurrencyId = StableCurrencyId;
@@ -934,28 +935,26 @@ parameter_types! {
 	pub const MinContribution: Balance = 1 * DOLLARS;
 	pub const BifrostCrowdloanId: PalletId = PalletId(*b"bf/salp#");
 	pub const RemoveKeysLimit: u32 = 500;
-	pub const TokenType: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
 	pub const VSBondValidPeriod: BlockNumber = 30 * DAYS;
 	pub const ReleaseCycle: BlockNumber = 1 * DAYS;
 	pub const LeasePeriod: BlockNumber = KUSAMA_LEASE_PERIOD;
 	pub const ReleaseRatio: Percent = Percent::from_percent(50);
 	pub const SlotLength: BlockNumber = 8u32 as BlockNumber;
-	pub const DepositTokenType: CurrencyId = CurrencyId::Token(TokenSymbol::ASG);
 }
 
 impl bifrost_salp::Config for Runtime {
 	type BancorPool = Bancor;
 	type BifrostXcmExecutor = BifrostXcmAdaptor<XcmRouter>;
-	type DepositToken = DepositTokenType;
+	type DepositToken = NativeCurrencyId;
 	type Event = Event;
 	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
 	type LeasePeriod = LeasePeriod;
 	type MinContribution = MinContribution;
-	type MultiCurrency = Tokens;
+	type MultiCurrency = Currencies;
 	type PalletId = BifrostCrowdloanId;
+	type RelayChainToken = RelayCurrencyId;
 	type ReleaseCycle = ReleaseCycle;
 	type ReleaseRatio = ReleaseRatio;
-	type RelyChainToken = TokenType;
 	type RemoveKeysLimit = RemoveKeysLimit;
 	type SlotLength = SlotLength;
 	type SubmissionDeposit = SubmissionDeposit;
@@ -970,22 +969,21 @@ parameter_types! {
 impl bifrost_bancor::Config for Runtime {
 	type Event = Event;
 	type InterventionPercentage = InterventionPercentage;
-	type MultiCurrenciesHandler = Currencies;
+	type MultiCurrency = Currencies;
 	type WeightInfo = bifrost_bancor::weights::BifrostWeight<Runtime>;
 }
 
 parameter_types! {
-	pub const InvoicingCurrency: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
 	pub const MaximumOrderInTrade: u32 = 5;
 	pub const MinimumSupply: Balance = 0;
 }
 
 impl bifrost_vsbond_auction::Config for Runtime {
 	type Event = Event;
-	type InvoicingCurrency = InvoicingCurrency;
+	type InvoicingCurrency = RelayCurrencyId;
 	type MaximumOrderInTrade = MaximumOrderInTrade;
 	type MinimumSupply = MinimumSupply;
-	type MultiCurrency = Tokens;
+	type MultiCurrency = Currencies;
 }
 
 // bifrost runtime end
@@ -1109,15 +1107,12 @@ impl pallet_vesting::Config for Runtime {
 // zenlink runtime end
 
 // orml runtime start
-parameter_types! {
-	pub const GetBifrostTokenId: CurrencyId = CurrencyId::Native(TokenSymbol::ASG);
-}
 
 pub type BifrostToken = BasicCurrencyAdapter<Runtime, Balances, Amount, BlockNumber>;
 
 impl orml_currencies::Config for Runtime {
 	type Event = Event;
-	type GetNativeCurrencyId = GetBifrostTokenId;
+	type GetNativeCurrencyId = NativeCurrencyId;
 	type MultiCurrency = Tokens;
 	type NativeCurrency = BifrostToken;
 	type WeightInfo = ();

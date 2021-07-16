@@ -76,6 +76,8 @@ frame_support::construct_runtime!(
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
+	pub const NativeCurrencyId: CurrencyId = CurrencyId::Native(TokenSymbol::BNC);
+	pub const StableCurrencyId: CurrencyId = CurrencyId::Stable(TokenSymbol::AUSD);
 }
 impl frame_system::Config for Runtime {
 	type AccountData = pallet_balances::AccountData<u64>;
@@ -103,16 +105,12 @@ impl frame_system::Config for Runtime {
 	type Version = ();
 }
 
-parameter_types! {
-	pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native(TokenSymbol::ASG);
-}
-
 pub type AdaptedBasicCurrency =
 	orml_currencies::BasicCurrencyAdapter<Runtime, PalletBalances, Amount, BlockNumber>;
 
 impl orml_currencies::Config for Runtime {
 	type Event = Event;
-	type GetNativeCurrencyId = GetNativeCurrencyId;
+	type GetNativeCurrencyId = NativeCurrencyId;
 	type MultiCurrency = Assets;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type WeightInfo = ();
@@ -244,7 +242,6 @@ parameter_types! {
 	pub const HalvingCycle: u32 = 60;
 	pub const RewardWindow: u32 = 10;
 	pub const MaximumExtendedPeriod: u32 = 20;
-	pub const StableCurrencyId: CurrencyId = CurrencyId::Stable(TokenSymbol::AUSD);
 }
 
 impl crate::Config for Runtime {

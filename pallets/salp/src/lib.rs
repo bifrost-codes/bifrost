@@ -251,7 +251,7 @@ pub mod pallet {
 		type MinContribution: Get<BalanceOf<Self>>;
 
 		#[pallet::constant]
-		type RelyChainToken: Get<CurrencyId>;
+		type RelayChainToken: Get<CurrencyId>;
 
 		#[pallet::constant]
 		type DepositToken: Get<CurrencyId>;
@@ -971,7 +971,7 @@ pub mod pallet {
 
 						// Increase the balance of bancor-pool by release-amount
 						if let Err(err) =
-							T::BancorPool::add_token(T::RelyChainToken::get(), release_amount)
+							T::BancorPool::add_token(T::RelayChainToken::get(), release_amount)
 						{
 							log::warn!("Bancor: {:?} on bifrost-bancor.", err);
 						}
@@ -1035,7 +1035,7 @@ pub mod pallet {
 			first_slot: LeasePeriod,
 			last_slot: LeasePeriod,
 		) -> (CurrencyId, CurrencyId) {
-			let token_symbol = *T::RelyChainToken::get();
+			let token_symbol = *T::RelayChainToken::get();
 
 			let vsToken = CurrencyId::VSToken(token_symbol);
 			let vsBond = CurrencyId::VSBond(token_symbol, index, first_slot, last_slot);

@@ -58,7 +58,7 @@ frame_support::construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: system::{Pallet, Call, Storage, Event<T>},
-		Assets: orml_tokens::{Pallet, Storage, Event<T>},
+		Tokens: orml_tokens::{Pallet, Storage, Event<T>},
 		Balances: balances::{Pallet, Call, Storage, Event<T>},
 		// TransactionPayment: pallet_transaction_payment::{Module, Storage},
 		FlexibleFee: flexible_fee::{Pallet, Call, Storage,Event<T>},
@@ -189,7 +189,7 @@ pub type AdaptedBasicCurrency =
 impl orml_currencies::Config for Test {
 	type Event = Event;
 	type GetNativeCurrencyId = GetNativeCurrencyId;
-	type MultiCurrency = Assets;
+	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type WeightInfo = ();
 }

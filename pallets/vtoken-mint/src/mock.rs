@@ -66,7 +66,7 @@ frame_support::construct_runtime!(
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
 		Currencies: orml_currencies::{Pallet, Call, Storage, Event<T>},
-		Assets: orml_tokens::{Pallet, Call, Storage, Event<T>, Config<T>},
+		Tokens: orml_tokens::{Pallet, Call, Storage, Event<T>, Config<T>},
 		PalletBalances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		VtokenMint: vtoken_mint::{Pallet, Call, Storage, Event<T>},
 		MinterReward: bifrost_minter_reward::{Pallet, Storage, Call,Event<T>, Config<T>},
@@ -78,6 +78,8 @@ parameter_types! {
 	pub const BlockHashCount: u64 = 250;
 	pub BlockWeights: frame_system::limits::BlockWeights =
 		frame_system::limits::BlockWeights::simple_max(1024);
+	pub const NativeCurrencyId: CurrencyId = CurrencyId::Native(TokenSymbol::BNC);
+	pub const StableCurrencyId: CurrencyId = CurrencyId::Stable(TokenSymbol::AUSD);
 }
 impl frame_system::Config for Runtime {
 	type AccountData = pallet_balances::AccountData<Balance>;
@@ -105,17 +107,13 @@ impl frame_system::Config for Runtime {
 	type Version = ();
 }
 
-parameter_types! {
-	pub const GetNativeCurrencyId: CurrencyId = CurrencyId::Native(TokenSymbol::ASG);
-}
-
 pub type AdaptedBasicCurrency =
 	orml_currencies::BasicCurrencyAdapter<Runtime, PalletBalances, Amount, BlockNumber>;
 
 impl orml_currencies::Config for Runtime {
 	type Event = Event;
-	type GetNativeCurrencyId = GetNativeCurrencyId;
-	type MultiCurrency = Assets;
+	type GetNativeCurrencyId = NativeCurrencyId;
+	type MultiCurrency = Tokens;
 	type NativeCurrency = AdaptedBasicCurrency;
 	type WeightInfo = ();
 }
@@ -156,7 +154,6 @@ parameter_types! {
 	pub const HalvingCycle: u32 = 1 * 365 * 2;
 	pub const RewardWindow: u32 = 50;
 	pub const MaximumExtendedPeriod: u32 = 500;
-	pub const StableCurrencyId: CurrencyId = CurrencyId::Stable(TokenSymbol::AUSD);
 }
 
 impl bifrost_minter_reward::Config for Runtime {

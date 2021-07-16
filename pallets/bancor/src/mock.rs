@@ -49,7 +49,7 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		Assets: orml_tokens::{Pallet, Call, Config<T>, Storage, Event<T>},
+		Tokens: orml_tokens::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Bancor: bancor::{Pallet, Call, Config<T>, Storage, Event<T>},
 	}
 );
@@ -114,7 +114,7 @@ parameter_types! {
 impl bancor::Config for Test {
 	type Event = Event;
 	type InterventionPercentage = InterventionPercentage;
-	type MultiCurrenciesHandler = Assets;
+	type MultiCurrency = Tokens;
 	type WeightInfo = ();
 }
 

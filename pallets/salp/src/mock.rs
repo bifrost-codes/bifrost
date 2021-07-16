@@ -49,11 +49,19 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
+		Currencies: orml_currencies::{Pallet, Call, Event<T>},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Event<T>},
 		Bancor: bifrost_bancor::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Salp: salp::{Pallet, Call, Storage, Event<T>},
 	}
 );
+
+parameter_types! {
+	pub const NativeCurrencyId: CurrencyId = CurrencyId::Native(TokenSymbol::ASG);
+	pub const RelayCurrencyId: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
+	pub const StableCurrencyId: CurrencyId = CurrencyId::Stable(TokenSymbol::AUSD);
+}
 
 parameter_types! {
 	pub const BlockHashCount: BlockNumber = 250;
@@ -62,7 +70,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Test {
-	type AccountData = ();
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type AccountId = AccountId;
 	type BaseCallFilter = ();
 	type BlockHashCount = BlockHashCount;
@@ -87,14 +95,33 @@ impl frame_system::Config for Test {
 	type Version = ();
 }
 
+parameter_types! {
+	pub const ExistentialDeposit: u128 = 0;
+	pub const TransferFee: u128 = 0;
+	pub const CreationFee: u128 = 0;
+	pub const TransactionByteFee: u128 = 0;
+	pub const MaxLocks: u32 = 999_999;
+	pub const MaxReserves: u32 = 999_999;
+}
+
+impl pallet_balances::Config for Test {
+	type AccountStore = System;
+	/// The type for recording an account's balance.
+	type Balance = Balance;
+	type DustRemoval = ();
+	/// The ubiquitous event type.
+	type Event = Event;
+	type ExistentialDeposit = ExistentialDeposit;
+	type MaxLocks = MaxLocks;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
+	type WeightInfo = pallet_balances::weights::SubstrateWeight<Test>;
+}
+
 orml_traits::parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
 		0
 	};
-}
-
-parameter_types! {
-	pub const MaxLocks: u32 = 999_999_999;
 }
 
 impl orml_tokens::Config for Test {
@@ -108,6 +135,16 @@ impl orml_tokens::Config for Test {
 	type WeightInfo = ();
 }
 
+pub type BifrostToken = orml_currencies::BasicCurrencyAdapter<Test, Balances, Amount, BlockNumber>;
+
+impl orml_currencies::Config for Test {
+	type Event = Event;
+	type GetNativeCurrencyId = NativeCurrencyId;
+	type MultiCurrency = Tokens;
+	type NativeCurrency = BifrostToken;
+	type WeightInfo = ();
+}
+
 parameter_types! {
 	pub const InterventionPercentage: Percent = Percent::from_percent(75);
 }
@@ -115,7 +152,7 @@ parameter_types! {
 impl bifrost_bancor::Config for Test {
 	type Event = Event;
 	type InterventionPercentage = InterventionPercentage;
-	type MultiCurrenciesHandler = Tokens;
+	type MultiCurrency = Tokens;
 	type WeightInfo = ();
 }
 
@@ -124,7 +161,6 @@ parameter_types! {
 	pub const MinContribution: Balance = 10;
 	pub const BifrostCrowdloanId: PalletId = PalletId(*b"bf/salp#");
 	pub const RemoveKeysLimit: u32 = 50;
-	pub const TokenType: CurrencyId = CurrencyId::Token(TokenSymbol::KSM);
 	pub const SlotLength: BlockNumber = 8u32 as BlockNumber;
 
 	pub const LeasePeriod: BlockNumber = 6 * WEEKS;
@@ -143,16 +179,16 @@ type LocalOriginToLocation = (SignedToAccountId32<Origin, AccountId, AnyNetwork>
 impl salp::Config for Test {
 	type BancorPool = Bancor;
 	type BifrostXcmExecutor = MockXcmExecutor;
-	type DepositToken = DepositTokenType;
+	type DepositToken = NativeCurrencyId;
 	type Event = Event;
 	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
 	type LeasePeriod = LeasePeriod;
 	type MinContribution = MinContribution;
 	type MultiCurrency = Tokens;
 	type PalletId = BifrostCrowdloanId;
+	type RelayChainToken = RelayCurrencyId;
 	type ReleaseCycle = ReleaseCycle;
 	type ReleaseRatio = ReleaseRatio;
-	type RelyChainToken = TokenType;
 	type RemoveKeysLimit = RemoveKeysLimit;
 	type SlotLength = SlotLength;
 	type SubmissionDeposit = SubmissionDeposit;
@@ -196,8 +232,9 @@ pub(crate) fn new_test_ext() -> sp_io::TestExternalities {
 
 	orml_tokens::GenesisConfig::<Test> {
 		balances: vec![
-			(ALICE, CurrencyId::Token(TokenSymbol::ASG), 20),
-			(ALICE, CurrencyId::Token(TokenSymbol::BNC), 20),
+			(ALICE, NativeCurrencyId::get(), 100),
+			(BRUCE, NativeCurrencyId::get(), 100),
+			(CATHI, NativeCurrencyId::get(), 100),
 		],
 	}
 	.assimilate_storage(&mut t)

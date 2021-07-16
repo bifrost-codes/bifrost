@@ -37,8 +37,7 @@ pub mod weights;
 pub use pallet::*;
 
 type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
-type BalanceOf<T> =
-	<<T as Config>::MultiCurrenciesHandler as MultiCurrency<AccountIdOf<T>>>::Balance;
+type BalanceOf<T> = <<T as Config>::MultiCurrency as MultiCurrency<AccountIdOf<T>>>::Balance;
 
 const BILLION: u128 = 1_000_000_000;
 
@@ -59,7 +58,7 @@ pub mod pallet {
 	#[pallet::config]
 	pub trait Config: frame_system::Config {
 		type Event: From<Event<Self>> + IsType<<Self as frame_system::Config>::Event>;
-		type MultiCurrenciesHandler: MultiCurrency<AccountIdOf<Self>, CurrencyId = CurrencyId>;
+		type MultiCurrency: MultiCurrency<AccountIdOf<Self>, CurrencyId = CurrencyId>;
 
 		#[pallet::constant]
 		type InterventionPercentage: Get<Percent>;
@@ -164,7 +163,7 @@ pub mod pallet {
 			let vstoken_id = currency_id.to_vstoken().map_err(|_| Error::<T>::ConversionError)?;
 
 			// Get exchanger's vstoken balance
-			let vstoken_balance = T::MultiCurrenciesHandler::free_balance(vstoken_id, &exchanger);
+			let vstoken_balance = T::MultiCurrency::free_balance(vstoken_id, &exchanger);
 			ensure!(vstoken_balance >= vstoken_amount, Error::<T>::NotEnoughBalance);
 
 			// make changes in the bancor pool
@@ -175,8 +174,8 @@ pub mod pallet {
 			Self::revise_bancor_pool_vstoken_buy_token(currency_id, token_amount, vstoken_amount)?;
 
 			// make changes in account balance
-			T::MultiCurrenciesHandler::withdraw(vstoken_id, &exchanger, vstoken_amount)?;
-			T::MultiCurrenciesHandler::deposit(currency_id, &exchanger, token_amount)?;
+			T::MultiCurrency::withdraw(vstoken_id, &exchanger, vstoken_amount)?;
+			T::MultiCurrency::deposit(currency_id, &exchanger, token_amount)?;
 
 			Self::deposit_event(Event::TokenSold(
 				exchanger,
@@ -202,7 +201,7 @@ pub mod pallet {
 			let vstoken_id = currency_id.to_vstoken().map_err(|_| Error::<T>::ConversionError)?;
 
 			// Get exchanger's token balance
-			let token_balance = T::MultiCurrenciesHandler::free_balance(currency_id, &exchanger);
+			let token_balance = T::MultiCurrency::free_balance(currency_id, &exchanger);
 			ensure!(token_balance >= token_amount, Error::<T>::NotEnoughBalance);
 
 			// make changes in the bancor pool
@@ -213,8 +212,8 @@ pub mod pallet {
 			Self::revise_bancor_pool_token_buy_vstoken(currency_id, token_amount, vstoken_amount)?;
 
 			// make changes in account balance
-			T::MultiCurrenciesHandler::withdraw(currency_id, &exchanger, token_amount)?;
-			T::MultiCurrenciesHandler::deposit(vstoken_id, &exchanger, vstoken_amount)?;
+			T::MultiCurrency::withdraw(currency_id, &exchanger, token_amount)?;
+			T::MultiCurrency::deposit(vstoken_id, &exchanger, vstoken_amount)?;
 
 			Self::deposit_event(Event::VSTokenSold(
 				exchanger,

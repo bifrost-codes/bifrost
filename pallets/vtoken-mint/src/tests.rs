@@ -31,8 +31,8 @@ fn mint_vtoken_should_be_ok() {
 		assert_ok!(VtokenMint::expand_mint_pool(DOT, dot_pool));
 		assert_ok!(VtokenMint::expand_mint_pool(vDOT, vdot_pool));
 
-		let alice_dot = Assets::free_balance(DOT, &ALICE);
-		let alice_vdot = Assets::free_balance(vDOT, &ALICE);
+		let alice_dot = Tokens::free_balance(DOT, &ALICE);
+		let alice_vdot = Tokens::free_balance(vDOT, &ALICE);
 
 		let dot_price = vdot_pool / dot_pool;
 		let to_sell_dot = 20;
@@ -51,8 +51,8 @@ fn mint_vtoken_should_be_ok() {
 		assert!(System::events().iter().any(|record| record.event == mint_vtoken_event));
 
 		// check Alice DOTs and vDOTs.
-		assert_eq!(Assets::free_balance(DOT, &ALICE), alice_dot - to_sell_dot);
-		assert_eq!(Assets::free_balance(vDOT, &ALICE), alice_vdot + minted_vdot);
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), alice_dot - to_sell_dot);
+		assert_eq!(Tokens::free_balance(vDOT, &ALICE), alice_vdot + minted_vdot);
 
 		// check total DOTs and vDOTs.
 		assert_eq!(VtokenMint::get_mint_pool(DOT), dot_pool + to_sell_dot);
@@ -91,8 +91,8 @@ fn redeem_token_should_be_ok() {
 		assert_ok!(VtokenMint::expand_mint_pool(DOT, dot_pool));
 		assert_ok!(VtokenMint::expand_mint_pool(vDOT, vdot_pool));
 
-		let alice_dot = Assets::free_balance(DOT, &ALICE);
-		let alice_vdot = Assets::free_balance(vDOT, &ALICE);
+		let alice_dot = Tokens::free_balance(DOT, &ALICE);
+		let alice_vdot = Tokens::free_balance(vDOT, &ALICE);
 
 		let to_sell_vdot = 20;
 		let minted_dot = to_sell_vdot * dot_pool / vdot_pool;
@@ -107,8 +107,8 @@ fn redeem_token_should_be_ok() {
 		assert!(System::events().iter().any(|record| { record.event == redeem_token_event }));
 
 		// check Alice DOTs and vDOTs.
-		// assert_eq!(Assets::free_balance(DOT, &ALICE), alice_dot + minted_dot);
-		assert_eq!(Assets::free_balance(vDOT, &ALICE), alice_vdot - to_sell_vdot);
+		// assert_eq!(Tokens::free_balance(DOT, &ALICE), alice_dot + minted_dot);
+		assert_eq!(Tokens::free_balance(vDOT, &ALICE), alice_vdot - to_sell_vdot);
 
 		// check total DOTs and vDOTs.
 		assert_eq!(VtokenMint::get_mint_pool(DOT), dot_pool - minted_dot);
@@ -142,11 +142,11 @@ fn redeem_token_should_be_ok() {
 
 		// Alice should have not received the minted dots, since dot redeem period is 28 blocks
 		// which is set in the mock
-		assert_eq!(Assets::free_balance(DOT, &ALICE), alice_dot);
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), alice_dot);
 
 		// After 30 blocks, Alice should received the minted dots
 		run_to_block(30);
-		assert_eq!(Assets::free_balance(DOT, &ALICE), alice_dot + minted_dot);
+		assert_eq!(Tokens::free_balance(DOT, &ALICE), alice_dot + minted_dot);
 	});
 }
 
