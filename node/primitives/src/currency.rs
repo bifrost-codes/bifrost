@@ -34,6 +34,7 @@ use crate::{
 	traits::{CurrencyIdExt, TokenInfo},
 	LeasePeriod, ParaId,
 };
+pub const BIFROST_PARACHAIN_ID: u32 = 2001; // bifrost parachain id
 
 macro_rules! create_currency_id {
 	($(#[$meta:meta])*
@@ -61,6 +62,59 @@ macro_rules! create_currency_id {
 			fn try_from(v: Vec<u8>) -> Result<CurrencyId, ()> {
 				match v.as_slice() {
 					$(bstringify!($symbol) => Ok(CurrencyId::Token(TokenSymbol::$symbol)),)*
+					_ => Err(()),
+				}
+			}
+		}
+
+		impl TryFrom<CurrencyId> for AssetId {
+			// DATA LAYOUT
+			//
+			// Currency Discriminant:    1byte
+			// TokenSymbol Index:        3byte
+			type Error = ();
+			fn try_from(id: CurrencyId) -> Result<AssetId, ()> {
+				let _index = match id {
+					$(CurrencyId::Native(TokenSymbol::$symbol) => Ok((CurrencyId::Native as u32, TokenSymbol::$symbol as u32)),)*
+					$(CurrencyId::Stable(TokenSymbol::$symbol) => Ok((CurrencyId::Stable as u32, TokenSymbol::$symbol as u32)),)*
+					$(CurrencyId::Token(TokenSymbol::$symbol) => Ok((CurrencyId::Token as u32, TokenSymbol::$symbol as u32)),)*
+					$(CurrencyId::VToken(TokenSymbol::$symbol) => Ok((CurrencyId::VToken as u32, TokenSymbol::$symbol as u32)),)*
+					$(CurrencyId::VSToken(TokenSymbol::$symbol) => Ok((CurrencyId::VSToken as u32, TokenSymbol::$symbol as u32)),)*
+					_ => Err(()),
+				};
+				let asset_index: u32 = (_index?.0 << 24) + (_index?.1 & 0x00ff_ffff);
+				if id.is_native() {
+					Ok(AssetId { chain_id: BIFROST_PARACHAIN_ID, asset_type: NATIVE, asset_index: asset_index })
+				} else {
+					Ok(AssetId {
+						chain_id: BIFROST_PARACHAIN_ID,
+						asset_type: LOCAL,
+						asset_index: asset_index,
+					})
+				}
+			}
+		}
+
+		impl TryInto<CurrencyId> for AssetId {
+			// DATA LAYOUT
+			//
+			// Currency Discriminant:    1byte
+			// TokenSymbol Index:        3byte
+			type Error = ();
+			fn try_into(self) -> Result<CurrencyId, Self::Error> {
+				let id: u32 = self.asset_index.saturated_into();
+				let c_discr = (id >> 24) as u32;
+				let _index = (0x00ff_ffff & id) as u32;
+				let token_symbol = match _index {
+					$(x if x == TokenSymbol::$symbol as u32 => Ok(TokenSymbol::$symbol),)*
+					_ => Err(()),
+				};
+				match c_discr {
+					0 => Ok(CurrencyId::Native(token_symbol?)),
+					1 => Ok(CurrencyId::Stable(token_symbol?)),
+					2 => Ok(CurrencyId::Token(token_symbol?)),
+					3 => Ok(CurrencyId::VToken(token_symbol?)),
+					4 => Ok(CurrencyId::VSToken(token_symbol?)),
 					_ => Err(()),
 				}
 			}
@@ -313,82 +367,6 @@ impl TryFrom<u64> for CurrencyId {
 			3 => Ok(Self::Stable(token_symbol)),
 			4 => Ok(Self::VSToken(token_symbol)),
 			5 => Ok(Self::VSBond(token_symbol, pid, lp1, lp2)),
-			_ => Err(()),
-		}
-	}
-}
-
-// Below is the trait which can convert between Zenlink AssetId type and Bifrost CurrencyId type
-pub const BIFROST_PARACHAIN_ID: u32 = 2001; // bifrost parachain id
-
-// Temporary solution for conversion from Bifrost CurrencyId to Zenlink AssetId
-impl TryFrom<CurrencyId> for AssetId {
-	type Error = ();
-
-	fn try_from(id: CurrencyId) -> Result<Self, Self::Error> {
-		if id.is_native() {
-			Ok(Self { chain_id: BIFROST_PARACHAIN_ID, asset_type: NATIVE, asset_index: 0u32 })
-		} else {
-			match id {
-				CurrencyId::Stable(TokenSymbol::AUSD) => Ok(Self {
-					chain_id: BIFROST_PARACHAIN_ID,
-					asset_type: LOCAL,
-					asset_index: 2 as u32,
-				}),
-
-				CurrencyId::Token(TokenSymbol::DOT) => Ok(Self {
-					chain_id: BIFROST_PARACHAIN_ID,
-					asset_type: LOCAL,
-					asset_index: 3 as u32,
-				}),
-				CurrencyId::Token(TokenSymbol::KSM) => Ok(Self {
-					chain_id: BIFROST_PARACHAIN_ID,
-					asset_type: LOCAL,
-					asset_index: 4 as u32,
-				}),
-				CurrencyId::Token(TokenSymbol::ETH) => Ok(Self {
-					chain_id: BIFROST_PARACHAIN_ID,
-					asset_type: LOCAL,
-					asset_index: 5 as u32,
-				}),
-
-				CurrencyId::VToken(TokenSymbol::DOT) => Ok(Self {
-					chain_id: BIFROST_PARACHAIN_ID,
-					asset_type: LOCAL,
-					asset_index: 6 as u32,
-				}),
-				CurrencyId::VToken(TokenSymbol::KSM) => Ok(Self {
-					chain_id: BIFROST_PARACHAIN_ID,
-					asset_type: LOCAL,
-					asset_index: 7 as u32,
-				}),
-				CurrencyId::VToken(TokenSymbol::ETH) => Ok(Self {
-					chain_id: BIFROST_PARACHAIN_ID,
-					asset_type: LOCAL,
-					asset_index: 8 as u32,
-				}),
-				_ => Err(()),
-			}
-		}
-	}
-}
-
-impl TryInto<CurrencyId> for AssetId {
-	type Error = ();
-
-	fn try_into(self) -> Result<CurrencyId, Self::Error> {
-		let id: u8 = self.asset_index.saturated_into();
-		match id {
-			0 => Ok(CurrencyId::Native(TokenSymbol::ASG)),
-			2 => Ok(CurrencyId::Stable(TokenSymbol::AUSD)),
-
-			3 => Ok(CurrencyId::Token(TokenSymbol::DOT)),
-			4 => Ok(CurrencyId::Token(TokenSymbol::KSM)),
-			5 => Ok(CurrencyId::Token(TokenSymbol::ETH)),
-
-			6 => Ok(CurrencyId::VToken(TokenSymbol::DOT)),
-			7 => Ok(CurrencyId::VToken(TokenSymbol::KSM)),
-			8 => Ok(CurrencyId::VToken(TokenSymbol::ETH)),
 			_ => Err(()),
 		}
 	}
