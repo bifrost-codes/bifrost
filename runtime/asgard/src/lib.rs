@@ -896,17 +896,13 @@ impl orml_tokens::Config for Runtime {
 	type WeightInfo = ();
 }
 
-parameter_types! {
-	pub const NativeCurrencyId: CurrencyId = CurrencyId::Native(TokenSymbol::ASG);
-}
-
 impl bifrost_flexible_fee::Config for Runtime {
 	type Balance = Balance;
 	type Currency = Balances;
 	type DexOperator = ZenlinkProtocol;
 	type Event = Event;
 	type MultiCurrency = Currencies;
-	type NativeCurrencyId = NativeCurrencyId;
+	type NativeCurrencyId = GetBifrostTokenId;
 	type OnUnbalanced = ();
 	type WeightInfo = ();
 }
@@ -940,18 +936,17 @@ parameter_types! {
 	pub const LeasePeriod: BlockNumber = KUSAMA_LEASE_PERIOD;
 	pub const ReleaseRatio: Percent = Percent::from_percent(50);
 	pub const SlotLength: BlockNumber = 8u32 as BlockNumber;
-	pub const DepositTokenType: CurrencyId = CurrencyId::Token(TokenSymbol::ASG);
 }
 
 impl bifrost_salp::Config for Runtime {
 	type BancorPool = Bancor;
 	type BifrostXcmExecutor = BifrostXcmAdaptor<XcmRouter>;
-	type DepositToken = DepositTokenType;
+	type DepositToken = GetBifrostTokenId;
 	type Event = Event;
 	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
 	type LeasePeriod = LeasePeriod;
 	type MinContribution = MinContribution;
-	type MultiCurrency = Tokens;
+	type MultiCurrency = Currencies;
 	type PalletId = BifrostCrowdloanId;
 	type ReleaseCycle = ReleaseCycle;
 	type ReleaseRatio = ReleaseRatio;

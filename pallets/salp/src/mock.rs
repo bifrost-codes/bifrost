@@ -49,7 +49,9 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic,
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
+		PalletBalances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		Tokens: orml_tokens::{Pallet, Call, Storage, Event<T>},
+		Currencies: orml_currencies::{Pallet, Call, Event<T>},
 		Bancor: bifrost_bancor::{Pallet, Call, Config<T>, Storage, Event<T>},
 		Salp: salp::{Pallet, Call, Storage, Event<T>},
 	}
@@ -62,7 +64,7 @@ parameter_types! {
 }
 
 impl frame_system::Config for Test {
-	type AccountData = ();
+	type AccountData = pallet_balances::AccountData<Balance>;
 	type AccountId = AccountId;
 	type BaseCallFilter = ();
 	type BlockHashCount = BlockHashCount;
@@ -87,6 +89,22 @@ impl frame_system::Config for Test {
 	type Version = ();
 }
 
+parameter_types! {
+	pub const ExistentialDeposit: Balance = 1;
+}
+
+impl pallet_balances::Config for Test {
+	type AccountStore = frame_system::Pallet<Test>;
+	type Balance = Balance;
+	type DustRemoval = ();
+	type Event = Event;
+	type ExistentialDeposit = ExistentialDeposit;
+	type MaxLocks = ();
+	type MaxReserves = ();
+	type ReserveIdentifier = [u8; 8];
+	type WeightInfo = ();
+}
+
 orml_traits::parameter_type_with_key! {
 	pub ExistentialDeposits: |_currency_id: CurrencyId| -> Balance {
 		0
@@ -105,6 +123,20 @@ impl orml_tokens::Config for Test {
 	type ExistentialDeposits = ExistentialDeposits;
 	type MaxLocks = MaxLocks;
 	type OnDust = ();
+	type WeightInfo = ();
+}
+
+parameter_types! {
+	pub const GetBifrostTokenId: CurrencyId = CurrencyId::Native(TokenSymbol::ASG);
+}
+pub type NativeCurrencyAdapter =
+	orml_currencies::BasicCurrencyAdapter<Test, PalletBalances, Amount, BlockNumber>;
+
+impl orml_currencies::Config for Test {
+	type Event = Event;
+	type GetNativeCurrencyId = GetBifrostTokenId;
+	type MultiCurrency = Tokens;
+	type NativeCurrency = NativeCurrencyAdapter;
 	type WeightInfo = ();
 }
 
@@ -148,7 +180,7 @@ impl salp::Config for Test {
 	type ExecuteXcmOrigin = EnsureXcmOrigin<Origin, LocalOriginToLocation>;
 	type LeasePeriod = LeasePeriod;
 	type MinContribution = MinContribution;
-	type MultiCurrency = Tokens;
+	type MultiCurrency = Currencies;
 	type PalletId = BifrostCrowdloanId;
 	type ReleaseCycle = ReleaseCycle;
 	type ReleaseRatio = ReleaseRatio;

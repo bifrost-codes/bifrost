@@ -24,7 +24,9 @@ xcm-builder = { git = "https://github.com/paritytech/polkadot", branch = "releas
 pallet-xcm = { git = "https://github.com/paritytech/polkadot", branch = "release-v0.9.8" }
 sp-io = "3.0.0"
 sp-core = "3.0.0"
+pallet-balances = "3.0.0"
 orml-tokens = "0.4.1-dev"
+orml-currencies = "0.4.1-dev"
 bifrost-bancor = { path = "../../pallets/bancor" }
 
 [features]
